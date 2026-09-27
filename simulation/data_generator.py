@@ -79,4 +79,3 @@ if __name__ == "__main__":
     gen = DataGenerator("S001", seed=42)
     for _ in range(10):
         print(gen.generate())
-

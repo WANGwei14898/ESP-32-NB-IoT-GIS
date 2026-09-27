@@ -1,9 +1,8 @@
 # 城市内涝监测预警系统 —— 模拟器依赖
 # 安装命令：pip install -r requirements.txt
-paho-mqtt>=2.0.0
-aiocoap>=0.4.7
-requests>=2.31.0
-numpy>=1.24.0
-pandas>=2.0.0
-python-dotenv>=1.0.0
-
+paho-mqtt
+aiocoap
+requests
+numpy
+pandas
+python-dotenv

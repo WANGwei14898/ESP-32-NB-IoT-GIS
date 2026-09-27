@@ -32,8 +32,16 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # 确定本次要启动的站点
-    stations = config.STATIONS[: args.count] if args.count else config.STATIONS
+    # 确定本次要启动的站点数量：
+    # 优先级：命令行 --count > .env 中的 STATION_COUNT > 全部站点
+    if args.count is not None:
+        count = args.count
+    elif config.STATION_COUNT > 0:
+        count = config.STATION_COUNT
+    else:
+        count = len(config.STATIONS)
+
+    stations = config.STATIONS[:count]
 
     print(f"上报协议：{config.PROTOCOL}")
     print(f"将启动 {len(stations)} 个监测站点："
@@ -67,4 +75,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

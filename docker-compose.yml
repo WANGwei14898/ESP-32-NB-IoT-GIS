@@ -1,0 +1,29 @@
+# =====================================================
+# 城市内涝监测预警系统 —— 基础设施编排
+# 使用方式：docker compose up -d
+# =====================================================
+services:
+  # ---------- MQTT Broker（EMQX） ----------
+  emqx:
+    image: emqx/emqx:5
+    container_name: emqx
+    restart: unless-stopped
+    environment:
+      - EMQX_NAME=emqx
+      - EMQX_HOST=127.0.0.1
+    ports:
+      - "1883:1883"     # MQTT 协议（模拟器上报用）
+      - "8083:8083"     # MQTT over WebSocket（前端实时展示用）
+      - "18083:18083"   # Dashboard / 管理控制台（http://localhost:18083）
+    volumes:
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  emqx_data:
+  emqx_log:

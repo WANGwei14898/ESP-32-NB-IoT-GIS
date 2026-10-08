@@ -1,0 +1,90 @@
+/* 全局基础样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  background: #f0f2f5;
+  color: #303133;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 通用面板卡片 */
+.panel-card {
+  border-radius: 8px;
+}
+
+/* 地图 / 三维容器 */
+.map-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.leaflet-container {
+  font-family: inherit;
+  background: #e8ecf1;
+}
+
+/* 站点标注样式（Leaflet divIcon） */
+.station-marker {
+  text-align: center;
+  pointer-events: auto;
+}
+.station-marker__pin {
+  width: 14px;
+  height: 14px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+.station-marker__label {
+  font-size: 12px;
+  color: #303133;
+  font-weight: 600;
+  margin-top: 2px;
+  white-space: nowrap;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff;
+}
+
+/* 弹窗内容 */
+.station-popup {
+  font-size: 13px;
+  line-height: 1.7;
+  min-width: 180px;
+}
+.station-popup h4 {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.station-popup .kv {
+  display: flex;
+  justify-content: space-between;
+}
+.station-popup .kv span:last-child {
+  font-weight: 600;
+}

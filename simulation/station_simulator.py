@@ -102,6 +102,7 @@ class StationSimulator:
         """停止循环上报。"""
         self._stop_event.set()
 
+
     # ------------------------------------------------------------------
     # MQTT 上报
     # ------------------------------------------------------------------
@@ -119,7 +120,7 @@ class StationSimulator:
         if config.MQTT_USERNAME:
             client.username_pw_set(config.MQTT_USERNAME, config.MQTT_PASSWORD)
 
-        client.connect(config.MQTT_BROKER_HOST, config.MQTT_BROKER_PORT, keepalive=60)
+        client.connect(config.MQTT_BROKER, config.MQTT_PORT, keepalive=60)
         client.loop_start()
         try:
             client.publish(topic, json.dumps(payload, ensure_ascii=False), qos=1)
@@ -194,5 +195,3 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             simulator.stop()
             print(f"\n站点 {simulator.station_id} 模拟器已停止")
-
-

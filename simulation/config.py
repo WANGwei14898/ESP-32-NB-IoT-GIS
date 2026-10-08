@@ -35,8 +35,8 @@ def _get_float(key: str, default: float) -> float:
 
 
 # ======================= MQTT 配置 =======================
-MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "localhost")
-MQTT_BROKER_PORT = _get_int("MQTT_BROKER_PORT", 1883)
+MQTT_BROKER = os.getenv("MQTT_BROKER", "localhost")
+MQTT_PORT = _get_int("MQTT_PORT", 1883)
 MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 
@@ -53,23 +53,28 @@ if PROTOCOL not in ("mqtt", "coap"):
 # ======================= 上报间隔（秒） =======================
 # 每个站点每次上报间隔在 [REPORT_INTERVAL_MIN, REPORT_INTERVAL_MAX] 内随机取值。
 # 默认 60 ~ 300 秒，即 1 ~ 5 分钟，可通过 .env 覆盖。
+REPORT_INTERVAL = _get_int("REPORT_INTERVAL", 60)
 REPORT_INTERVAL_MIN = _get_int("REPORT_INTERVAL_MIN", 60)
 REPORT_INTERVAL_MAX = _get_int("REPORT_INTERVAL_MAX", 300)
 
+# 本次启动的站点数量（默认启动全部站点）
+STATION_COUNT = _get_int("STATION_COUNT", 0)
+
 # ======================= 站点列表 =======================
 # 站点编号全局唯一，经纬度使用广州市区的近似坐标（WGS84）。
-# 每个站点包含：station_id（编号）、name（名称）、latitude（纬度）、longitude（经度）。
+# 每个站点包含：station_id（编号）、name（名称）、latitude（纬度）、
+#              longitude（经度）、report_interval（上报间隔，秒）。
 STATIONS = [
-    {"station_id": "S001", "name": "天河区-棠下涌", "latitude": 23.1291, "longitude": 113.3570},
-    {"station_id": "S002", "name": "越秀区-东濠涌", "latitude": 23.1290, "longitude": 113.2644},
-    {"station_id": "S003", "name": "海珠区-康乐涌", "latitude": 23.0950, "longitude": 113.2880},
-    {"station_id": "S004", "name": "荔湾区-荔枝湾涌", "latitude": 23.1170, "longitude": 113.2380},
-    {"station_id": "S005", "name": "白云区-石井河", "latitude": 23.2100, "longitude": 113.2300},
-    {"station_id": "S006", "name": "黄埔区-南岗河", "latitude": 23.0930, "longitude": 113.5400},
-    {"station_id": "S007", "name": "番禺区-市桥水道", "latitude": 22.9370, "longitude": 113.3620},
-    {"station_id": "S008", "name": "南沙区-蕉门河", "latitude": 22.8010, "longitude": 113.5250},
-    {"station_id": "S009", "name": "增城区-增江", "latitude": 23.2900, "longitude": 113.8300},
-    {"station_id": "S010", "name": "花都区-天马河", "latitude": 23.4040, "longitude": 113.1920},
+    {"station_id": "S001", "name": "天河区-棠下涌", "latitude": 23.1291, "longitude": 113.3570, "report_interval": 60},
+    {"station_id": "S002", "name": "越秀区-东濠涌", "latitude": 23.1290, "longitude": 113.2644, "report_interval": 120},
+    {"station_id": "S003", "name": "海珠区-康乐涌", "latitude": 23.0950, "longitude": 113.2880, "report_interval": 180},
+    {"station_id": "S004", "name": "荔湾区-荔枝湾涌", "latitude": 23.1170, "longitude": 113.2380, "report_interval": 90},
+    {"station_id": "S005", "name": "白云区-石井河", "latitude": 23.2100, "longitude": 113.2300, "report_interval": 240},
+    {"station_id": "S006", "name": "黄埔区-南岗河", "latitude": 23.0930, "longitude": 113.5400, "report_interval": 150},
+    {"station_id": "S007", "name": "番禺区-市桥水道", "latitude": 22.9370, "longitude": 113.3620, "report_interval": 300},
+    {"station_id": "S008", "name": "南沙区-蕉门河", "latitude": 22.8010, "longitude": 113.5250, "report_interval": 60},
+    {"station_id": "S009", "name": "增城区-增江", "latitude": 23.2900, "longitude": 113.8300, "report_interval": 210},
+    {"station_id": "S010", "name": "花都区-天马河", "latitude": 23.4040, "longitude": 113.1920, "report_interval": 270},
 ]
 
 # ======================= 阈值配置 =======================
@@ -90,4 +95,3 @@ def get_station(station_id: str):
         if station["station_id"] == station_id:
             return station
     return None
-

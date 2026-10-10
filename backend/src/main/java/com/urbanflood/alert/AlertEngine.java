@@ -25,6 +25,10 @@ public class AlertEngine {
 
     /** 水位阈值编码（按严重程度从高到低排列）。 */
     private static final String[] WATER_CODES = {"WATER_RED", "WATER_ORANGE", "WATER_YELLOW", "WATER_BLUE"};
+    /** 雨量阈值编码（按严重程度从高到低排列）。 */
+    private static final String[] RAIN_CODES = {"RAIN_RED", "RAIN_ORANGE", "RAIN_YELLOW", "RAIN_BLUE"};
+    /** 流速阈值编码（按严重程度从高到低排列）。 */
+    private static final String[] FLOW_CODES = {"FLOW_RED", "FLOW_ORANGE", "FLOW_YELLOW", "FLOW_BLUE"};
 
     private final ThresholdMapper thresholdMapper;
     private final AlertMapper alertMapper;
@@ -36,50 +40,18 @@ public class AlertEngine {
         this.notifier = notifier;
     }
 
-    /**
-     * 评估一条遥测数据，必要时生成告警。
-     *
-     * @param telemetry 遥测数据
-     * @param station   关联站点（可能为 null）
-     */
     public void evaluate(Telemetry telemetry, Station station) {
         if (telemetry == null || telemetry.getStationId() == null) {
             return;
         }
         Map<String, Threshold> thresholds = loadThresholds();
 
-        // 水位：取最高等级的越限阈值
-        Threshold waterTrigger = null;
-        for (String code : WATER_CODES) {
-            Threshold th = thresholds.get(code);
-            if (th != null && Boolean.TRUE.equals(th.getEnabled())
-                    && telemetry.getWaterLevel() != null && telemetry.getWaterLevel() >= th.getThresholdValue()) {
-                waterTrigger = th;
-                break;
-            }
-        }
-        if (waterTrigger != null) {
-            emit(telemetry, station, "WATER", waterTrigger.getLevel(),
-                    "水位超限（阈值 " + waterTrigger.getThresholdValue() + " m）", telemetry.getWaterLevel(), waterTrigger.getThresholdValue());
-        }
+        // 水位 / 雨量 / 流速：均按蓝黄橙红四级阈值判断，命中最高等级的越限阈值即触发对应等级告警
+        emitByLevel(telemetry, station, thresholds, WATER_CODES, "WATER", "水位超限", telemetry.getWaterLevel(), "m");
+        emitByLevel(telemetry, station, thresholds, RAIN_CODES, "RAIN", "降雨量过大", telemetry.getRainfall(), "mm/h");
+        emitByLevel(telemetry, station, thresholds, FLOW_CODES, "FLOW", "流速过快", telemetry.getFlowVelocity(), "m/s");
 
-        // 雨量
-        Threshold rain = thresholds.get("RAIN_HEAVY");
-        if (rain != null && Boolean.TRUE.equals(rain.getEnabled())
-                && telemetry.getRainfall() != null && telemetry.getRainfall() >= rain.getThresholdValue()) {
-            emit(telemetry, station, "RAIN", rain.getLevel(),
-                    "降雨量过大（阈值 " + rain.getThresholdValue() + " mm/h）", telemetry.getRainfall(), rain.getThresholdValue());
-        }
-
-        // 流速
-        Threshold flow = thresholds.get("FLOW_HIGH");
-        if (flow != null && Boolean.TRUE.equals(flow.getEnabled())
-                && telemetry.getFlowVelocity() != null && telemetry.getFlowVelocity() >= flow.getThresholdValue()) {
-            emit(telemetry, station, "FLOW", flow.getLevel(),
-                    "流速过快（阈值 " + flow.getThresholdValue() + " m/s）", telemetry.getFlowVelocity(), flow.getThresholdValue());
-        }
-
-        // 电量
+        // 电量（保留版本2的 getThresholdValue() 写法）
         Threshold battery = thresholds.get("BATTERY_LOW");
         if (battery != null && Boolean.TRUE.equals(battery.getEnabled())
                 && telemetry.getBattery() != null && telemetry.getBattery() <= battery.getThresholdValue()) {
@@ -87,12 +59,26 @@ public class AlertEngine {
                     "电量过低（阈值 " + battery.getThresholdValue() + " %）", telemetry.getBattery(), battery.getThresholdValue());
         }
 
-        // 信号
+        // 信号（保留版本2的 getSignalStrength() 和 getThresholdValue() 写法）
         Threshold signal = thresholds.get("SIGNAL_WEAK");
         if (signal != null && Boolean.TRUE.equals(signal.getEnabled())
                 && telemetry.getSignalStrength() != null && telemetry.getSignalStrength() <= signal.getThresholdValue()) {
             emit(telemetry, station, "SIGNAL", signal.getLevel(),
                     "信号偏弱（阈值 " + signal.getThresholdValue() + " dBm）", telemetry.getSignalStrength(), signal.getThresholdValue());
+        }
+    }
+
+    private void emitByLevel(Telemetry t, Station station, Map<String, Threshold> thresholds,
+                             String[] codes, String type, String metricText,
+                             Double currentValue, String unit) {
+        for (String code : codes) {
+            Threshold th = thresholds.get(code);
+            if (th != null && Boolean.TRUE.equals(th.getEnabled())
+                    && currentValue != null && currentValue >= th.getThresholdValue()) {
+                emit(t, station, type, th.getLevel(),
+                        metricText + "（阈值 " + th.getThresholdValue() + " " + unit + "）", currentValue, th.getThresholdValue());
+                return;
+            }
         }
     }
 
@@ -106,10 +92,8 @@ public class AlertEngine {
         return map;
     }
 
-    /** 生成并落库告警（含去重与推送）。 */
     private void emit(Telemetry t, Station station, String type, String level,
                       String message, Double currentValue, Double thresholdValue) {
-        // 去重：同一站点、同一类型、同一等级的未处理告警已存在则跳过
         Long count = alertMapper.selectCount(new LambdaQueryWrapper<Alert>()
                 .eq(Alert::getStationId, t.getStationId())
                 .eq(Alert::getType, type)

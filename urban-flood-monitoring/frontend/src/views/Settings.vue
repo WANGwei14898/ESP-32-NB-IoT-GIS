@@ -16,7 +16,7 @@
         </el-table-column>
         <el-table-column label="阈值" width="220">
           <template #default="{ row }">
-            <el-input-number v-model="row.value" :precision="2" :step="1" controls-position="right" style="width: 160px" />
+            <el-input-number v-model="row.thresholdValue" :precision="2" :step="1" controls-position="right" style="width: 160px" />
             <span class="unit">{{ row.unit }}</span>
           </template>
         </el-table-column>

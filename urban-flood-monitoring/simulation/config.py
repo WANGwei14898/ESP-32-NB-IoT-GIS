@@ -37,8 +37,8 @@ def _get_float(key: str, default: float) -> float:
 # ======================= MQTT 配置 =======================
 MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "localhost")
 MQTT_BROKER_PORT = _get_int("MQTT_BROKER_PORT", 1883)
-MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
-MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
+MQTT_USERNAME = os.getenv("MQTT_USERNAME", "Wangwei")
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "123456")
 
 # ======================= CoAP 配置 =======================
 COAP_HOST = os.getenv("COAP_HOST", "localhost")

@@ -34,6 +34,15 @@ public class TelemetryController {
         return Result.ok(telemetryService.realtime());
     }
 
+    /** 直接响应 GET /api/telemetry?stationId=xxx（stationId 可为站点编号 S001 或数字主键 id）。 */
+    @GetMapping
+    public Result<Object> query(@RequestParam(required = false) String stationId) {
+        if (stationId == null || stationId.isBlank()) {
+            return Result.ok(telemetryService.realtime());
+        }
+        return Result.ok(telemetryService.latestByStationKey(stationId));
+    }
+
     /** 查询历史遥测序列。 */
     @GetMapping("/history")
     public Result<List<TelemetryDTO>> history(@RequestParam(required = false) Long stationId,

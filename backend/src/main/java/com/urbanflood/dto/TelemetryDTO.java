@@ -21,7 +21,7 @@ public class TelemetryDTO {
     private Double rainfall;
     private Double flowVelocity;
     private Double battery;
-    private Double signal;
+    private Double signalStrength;
     /** 采集时间（ISO-8601 字符串） */
     private String timestamp;
 
@@ -34,7 +34,7 @@ public class TelemetryDTO {
         dto.setRainfall(t.getRainfall());
         dto.setFlowVelocity(t.getFlowVelocity());
         dto.setBattery(t.getBattery());
-        dto.setSignal(t.getSignal());
+        dto.setSignalStrength(t.getSignalStrength());
         dto.setTimestamp(TimeUtil.formatIso(t.getTs()));
         return dto;
     }

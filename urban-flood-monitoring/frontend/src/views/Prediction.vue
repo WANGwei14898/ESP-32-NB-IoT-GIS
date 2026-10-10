@@ -59,7 +59,7 @@ const predictionOption = computed<EChartsOption>(() => {
     .filter((t) => t.enabled && t.unit === 'cm')
     .map((t) => ({
       name: t.name,
-      yAxis: t.value,
+      yAxis: t.thresholdValue,
       lineStyle: { color: LEVEL_COLOR[t.level], type: 'dashed' as const },
       label: { formatter: t.name },
     }))

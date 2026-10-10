@@ -30,11 +30,6 @@
       <div v-if="selected.latest" class="gis__info-row"><span>雨量</span><span>{{ selected.latest.rainfall }} mm</span></div>
       <div v-if="selected.latest" class="gis__info-row"><span>流速</span><span>{{ selected.latest.flowVelocity }} m/s</span></div>
     </div>
-
-    <!-- 站点标注 -->
-    <template v-if="map && showStations">
-      <StationMarker v-for="s in stations" :key="s.id" :station="s" :map="map" @select="onSelect" />
-    </template>
   </div>
 </template>
 
@@ -42,10 +37,9 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
 import type { HeatPoint, InfluenceCircle, Station, WaterPoint, AlertLevel } from '@/types'
-import { LEVEL_COLOR, LEVEL_TEXT } from '@/utils/format'
+import { LEVEL_COLOR, LEVEL_TEXT, STATUS_TEXT, formatTime } from '@/utils/format'
 import { getHeatmap, getInfluenceCircles, getStations, getWaterPoints } from '@/api/gis'
 import { realtimeSocket } from '@/utils/websocket'
-import StationMarker from '@/components/StationMarker.vue'
 import AlertBadge from '@/components/AlertBadge.vue'
 
 // 水位热力图层（Canvas 径向渐变叠加）
@@ -123,6 +117,7 @@ const showInfluence = ref(true)
 
 const levels: AlertLevel[] = ['BLUE', 'YELLOW', 'ORANGE', 'RED']
 
+let stationLayer: L.LayerGroup | null = null
 let waterLayer: L.LayerGroup | null = null
 let influenceLayer: L.LayerGroup | null = null
 let heatLayer: HeatLayer | null = null
@@ -154,8 +149,58 @@ async function loadData() {
   } catch {
     /* 错误已统一提示 */
   }
+  renderStations()
   renderWaterPoints()
   renderInfluence()
+}
+
+// 渲染站点标注（命令式创建 Leaflet Marker）
+function renderStations() {
+  stationLayer?.clearLayers()
+  if (!showStations.value) return
+  stations.value.forEach((s) => {
+    const marker = L.marker([s.latitude, s.longitude], { icon: createStationIcon(s) })
+      .addTo(stationLayer!)
+      .bindPopup(buildStationPopup(s))
+    marker.on('click', () => onSelect(s))
+  })
+}
+
+// 生成带等级颜色的站点 divIcon
+function createStationIcon(s: Station): L.DivIcon {
+  const color = LEVEL_COLOR[s.alertLevel] || '#67C23A'
+  const offline = s.status !== 'ONLINE'
+  return L.divIcon({
+    className: 'station-marker',
+    html: `
+      <div class="station-marker__pin" style="background:${color};${offline ? 'opacity:0.45;' : ''}"></div>
+      <div class="station-marker__label">${s.name}</div>
+    `,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+    popupAnchor: [0, -12],
+  })
+}
+
+// 站点弹窗内容（显示站点编号与水情数据）
+function buildStationPopup(s: Station): string {
+  const t = s.latest
+  const rows = [
+    ['站点编号', s.code],
+    ['所属区域', s.region || '-'],
+    ['设备状态', STATUS_TEXT[s.status] || '-'],
+    ['预警等级', LEVEL_TEXT[s.alertLevel] || '正常'],
+  ]
+  if (t) {
+    rows.push(
+      ['水位', `${t.waterLevel} cm`],
+      ['雨量', `${t.rainfall} mm`],
+      ['流速', `${t.flowVelocity} m/s`],
+      ['采集时间', formatTime(t.timestamp)],
+    )
+  }
+  const body = rows.map(([k, v]) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`).join('')
+  return `<div class="station-popup"><h4>${s.name}</h4>${body}</div>`
 }
 
 // 渲染积水点
@@ -198,6 +243,7 @@ function onTelemetry(data: any) {
   const s = stations.value.find((x) => x.id === data.stationId)
   if (s) {
     s.latest = { ...s.latest, ...data } as Station['latest']
+    renderStations()
   }
 }
 
@@ -212,6 +258,7 @@ watch([showWaterPoints, showInfluence], () => {
   renderWaterPoints()
   renderInfluence()
 })
+watch(showStations, () => renderStations())
 watch(showHeat, (v) => {
   if (!heatLayer) return
   if (v) heatLayer.setPoints(heatPoints.value)
@@ -229,6 +276,7 @@ onMounted(() => {
     attribution: '&copy; 高德地图',
   }).addTo(m)
   map.value = m
+  stationLayer = L.layerGroup().addTo(m)
   waterLayer = L.layerGroup().addTo(m)
   influenceLayer = L.layerGroup().addTo(m)
   heatLayer = new HeatLayer().addTo(m)
@@ -251,6 +299,11 @@ onBeforeUnmount(() => {
   position: relative;
   height: calc(100vh - 92px);
   min-height: 480px;
+}
+.map-container {
+  height: 100%;
+  min-height: 600px;
+  width: 100%;
 }
 .gis__panel,
 .gis__legend,

@@ -53,12 +53,17 @@ def _forward_to_mqtt(station_id: str, payload: dict) -> None:
         topic = f"flood/{station_id}/telemetry"
         broker = os.getenv("MQTT_BROKER", "localhost")
         port = int(os.getenv("MQTT_PORT", "1883"))
+        username = os.getenv("MQTT_USERNAME", "Wangwei")
+        password = os.getenv("MQTT_PASSWORD", "123456")
 
         # 兼容 paho-mqtt v1 与 v2 的 Client 构造方式
         try:
             client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         except (AttributeError, TypeError):
             client = mqtt.Client()
+
+        if username:
+            client.username_pw_set(username, password)
 
         client.connect(broker, port, keepalive=60)
         client.loop_start()

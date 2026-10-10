@@ -46,9 +46,9 @@ public class Device {
     /** 电量（%） */
     private Double battery;
 
-    /** 信号强度（dBm），列名 signal_strength */
+    /** 信号强度（dBm），列名 signal_strength（signal 为 MySQL 保留字，字段改名避免别名冲突） */
     @TableField("signal_strength")
-    private Double signal;
+    private Double signalStrength;
 
     /** 固件版本 */
     private String firmware;

@@ -56,7 +56,7 @@ public class TelemetryService {
         telemetry.setRainfall(node.hasNonNull("rainfall") ? node.get("rainfall").asDouble() : null);
         telemetry.setFlowVelocity(node.hasNonNull("flow_speed") ? node.get("flow_speed").asDouble() : null);
         telemetry.setBattery(node.hasNonNull("battery") ? node.get("battery").asDouble() : null);
-        telemetry.setSignal(node.hasNonNull("signal") ? node.get("signal").asDouble() : null);
+        telemetry.setSignalStrength(node.hasNonNull("signal") ? node.get("signal").asDouble() : null);
 
         LocalDateTime ts = node.hasNonNull("timestamp")
                 ? TimeUtil.parseIso(node.get("timestamp").asText())
@@ -111,7 +111,7 @@ public class TelemetryService {
     private void refreshDeviceHeartbeat(Device device, Telemetry telemetry) {
         device.setLastHeartbeat(LocalDateTime.now());
         device.setBattery(telemetry.getBattery());
-        device.setSignal(telemetry.getSignal());
+        device.setSignalStrength(telemetry.getSignalStrength());
         device.setStatus("ONLINE");
         deviceMapper.updateById(device);
     }
@@ -119,6 +119,28 @@ public class TelemetryService {
     public TelemetryDTO latest(Long stationId) {
         Telemetry t = telemetryMapper.selectLatestByStation(stationId);
         return t == null ? null : enrich(TelemetryDTO.from(t), t.getStationId());
+    }
+
+    /** 按站点编号(code，如 S001)或数字主键(id)查询最新遥测。 */
+    public TelemetryDTO latestByStationKey(String stationKey) {
+        Long stationId = resolveStationId(stationKey);
+        return stationId == null ? null : latest(stationId);
+    }
+
+    /** 将站点编号(code，如 S001)或数字主键(id)解析为站点主键 id。 */
+    private Long resolveStationId(String stationKey) {
+        if (stationKey == null || stationKey.isBlank()) {
+            return null;
+        }
+        String key = stationKey.trim();
+        try {
+            return Long.parseLong(key);
+        } catch (NumberFormatException ignored) {
+            // 非数字，按站点编号(code)查询
+        }
+        Station station = stationMapper.selectOne(
+                new LambdaQueryWrapper<Station>().eq(Station::getCode, key));
+        return station == null ? null : station.getId();
     }
 
     /** 查询时间范围内的历史遥测序列。 */

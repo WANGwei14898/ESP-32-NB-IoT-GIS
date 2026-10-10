@@ -53,46 +53,46 @@ public class AlertEngine {
         for (String code : WATER_CODES) {
             Threshold th = thresholds.get(code);
             if (th != null && Boolean.TRUE.equals(th.getEnabled())
-                    && telemetry.getWaterLevel() != null && telemetry.getWaterLevel() >= th.getValue()) {
+                    && telemetry.getWaterLevel() != null && telemetry.getWaterLevel() >= th.getThresholdValue()) {
                 waterTrigger = th;
                 break;
             }
         }
         if (waterTrigger != null) {
             emit(telemetry, station, "WATER", waterTrigger.getLevel(),
-                    "水位超限（阈值 " + waterTrigger.getValue() + " m）", telemetry.getWaterLevel(), waterTrigger.getValue());
+                    "水位超限（阈值 " + waterTrigger.getThresholdValue() + " m）", telemetry.getWaterLevel(), waterTrigger.getThresholdValue());
         }
 
         // 雨量
         Threshold rain = thresholds.get("RAIN_HEAVY");
         if (rain != null && Boolean.TRUE.equals(rain.getEnabled())
-                && telemetry.getRainfall() != null && telemetry.getRainfall() >= rain.getValue()) {
+                && telemetry.getRainfall() != null && telemetry.getRainfall() >= rain.getThresholdValue()) {
             emit(telemetry, station, "RAIN", rain.getLevel(),
-                    "降雨量过大（阈值 " + rain.getValue() + " mm/h）", telemetry.getRainfall(), rain.getValue());
+                    "降雨量过大（阈值 " + rain.getThresholdValue() + " mm/h）", telemetry.getRainfall(), rain.getThresholdValue());
         }
 
         // 流速
         Threshold flow = thresholds.get("FLOW_HIGH");
         if (flow != null && Boolean.TRUE.equals(flow.getEnabled())
-                && telemetry.getFlowVelocity() != null && telemetry.getFlowVelocity() >= flow.getValue()) {
+                && telemetry.getFlowVelocity() != null && telemetry.getFlowVelocity() >= flow.getThresholdValue()) {
             emit(telemetry, station, "FLOW", flow.getLevel(),
-                    "流速过快（阈值 " + flow.getValue() + " m/s）", telemetry.getFlowVelocity(), flow.getValue());
+                    "流速过快（阈值 " + flow.getThresholdValue() + " m/s）", telemetry.getFlowVelocity(), flow.getThresholdValue());
         }
 
         // 电量
         Threshold battery = thresholds.get("BATTERY_LOW");
         if (battery != null && Boolean.TRUE.equals(battery.getEnabled())
-                && telemetry.getBattery() != null && telemetry.getBattery() <= battery.getValue()) {
+                && telemetry.getBattery() != null && telemetry.getBattery() <= battery.getThresholdValue()) {
             emit(telemetry, station, "BATTERY", battery.getLevel(),
-                    "电量过低（阈值 " + battery.getValue() + " %）", telemetry.getBattery(), battery.getValue());
+                    "电量过低（阈值 " + battery.getThresholdValue() + " %）", telemetry.getBattery(), battery.getThresholdValue());
         }
 
         // 信号
         Threshold signal = thresholds.get("SIGNAL_WEAK");
         if (signal != null && Boolean.TRUE.equals(signal.getEnabled())
-                && telemetry.getSignal() != null && telemetry.getSignal() <= signal.getValue()) {
+                && telemetry.getSignalStrength() != null && telemetry.getSignalStrength() <= signal.getThresholdValue()) {
             emit(telemetry, station, "SIGNAL", signal.getLevel(),
-                    "信号偏弱（阈值 " + signal.getValue() + " dBm）", telemetry.getSignal(), signal.getValue());
+                    "信号偏弱（阈值 " + signal.getThresholdValue() + " dBm）", telemetry.getSignalStrength(), signal.getThresholdValue());
         }
     }
 

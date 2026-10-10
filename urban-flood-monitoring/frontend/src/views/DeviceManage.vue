@@ -43,7 +43,7 @@
           </template>
         </el-table-column>
         <el-table-column label="信号" width="90">
-          <template #default="{ row }">{{ row.signal != null ? row.signal + ' dBm' : '-' }}</template>
+          <template #default="{ row }">{{ row.signalStrength != null ? row.signalStrength + ' dBm' : '-' }}</template>
         </el-table-column>
         <el-table-column label="最后心跳" width="170">
           <template #default="{ row }">{{ formatTime(row.lastHeartbeat) }}</template>

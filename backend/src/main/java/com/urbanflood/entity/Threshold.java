@@ -1,6 +1,7 @@
 package com.urbanflood.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -21,8 +22,9 @@ public class Threshold {
     /** 阈值名称 */
     private String name;
 
-    /** 阈值数值 */
-    private Double value;
+    /** 阈值数值，列名 value（value 为 MySQL 保留字，需反引号） */
+    @TableField("`value`")
+    private Double thresholdValue;
 
     /** 单位 */
     private String unit;

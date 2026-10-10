@@ -45,7 +45,7 @@ export interface Device {
   status: DeviceStatus
   lastHeartbeat?: string
   battery?: number
-  signal?: number
+  signalStrength?: number
   firmware?: string
   installTime?: string
 }
@@ -59,7 +59,7 @@ export interface Telemetry {
   rainfall: number
   flowVelocity: number
   battery?: number
-  signal?: number
+  signalStrength?: number
   timestamp: string
 }
 
@@ -113,7 +113,7 @@ export interface Threshold {
   id: number
   code: string
   name: string
-  value: number
+  thresholdValue: number
   unit: string
   level: AlertLevel
   enabled: boolean

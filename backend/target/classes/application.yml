@@ -8,7 +8,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/flood_monitor?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password: 123456
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
@@ -37,8 +37,8 @@ mybatis-plus:
 mqtt:
   broker: tcp://localhost:1883
   client-id: flood-backend
-  username: ""
-  password: ""
+  username: "Wangwei"
+  password: "123456"
   clean-session: true
   keep-alive: 60
   qos: 1

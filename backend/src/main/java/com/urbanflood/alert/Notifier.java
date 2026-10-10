@@ -8,18 +8,23 @@ import com.urbanflood.websocket.RealtimePushHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
- * 告警通知推送器，模拟短信 / 微信 / 邮件 / App 推送。
+ * 告警通知推送器，支持短信 / 微信 / 邮件 / App 多渠道推送。
  * <p>
- * 短信、微信、App 采用日志模拟；邮件通过 JavaMailSender 发送；Webhook 通过 HTTP 调用；
- * 所有渠道均写入 push_log 表，同时通过 WebSocket 实时推送。
+ * 短信、App 采用日志模拟；微信通过企业微信机器人 Webhook 调用（未配置时退化为日志模拟）；
+ * 邮件通过 JavaMailSender 真实发送；所有渠道均写入 push_log 表，同时通过 WebSocket 实时推送到前端。
  * </p>
  */
 @Slf4j
@@ -40,8 +45,9 @@ public class Notifier {
     @Value("${push.mail.from:no-reply@urbanflood.local}")
     private String mailFrom;
 
-    @Value("${push.webhook-url:}")
-    private String webhookUrl;
+    /** 企业微信机器人 Webhook 地址（未配置时微信渠道退化为日志模拟）。 */
+    @Value("${push.wechat-webhook-url:}")
+    private String wechatWebhookUrl;
 
     @Value("${push.sms-target:13800000000}")
     private String smsTarget;
@@ -59,7 +65,6 @@ public class Notifier {
         pushWechat(alert, content);
         pushEmail(alert, content);
         pushApp(alert, content);
-        pushWebhook(alert, content);
         pushWebSocket(alert);
     }
 
@@ -85,8 +90,28 @@ public class Notifier {
     }
 
     private void pushWechat(Alert alert, String content) {
-        log.info("[微信推送] 内容={}", content);
-        saveLog(alert.getId(), "WECHAT", "flood-alert-group", content, "SUCCESS");
+        // 未配置企业微信机器人 Webhook 时退化为日志模拟
+        if (wechatWebhookUrl == null || wechatWebhookUrl.isBlank()) {
+            log.info("[微信推送-模拟] 未配置企业微信机器人 Webhook，内容={}", content);
+            saveLog(alert.getId(), "WECHAT", "flood-alert-group", content, "SUCCESS");
+            return;
+        }
+        try {
+            // 企业微信机器人消息格式：{ "msgtype": "text", "text": { "content": "..." } }
+            Map<String, Object> text = Map.of("content", content);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("msgtype", "text");
+            body.put("text", text);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            restTemplate.postForEntity(wechatWebhookUrl, entity, String.class);
+            log.info("[微信推送] 企业微信机器人 Webhook 发送成功: {}", wechatWebhookUrl);
+            saveLog(alert.getId(), "WECHAT", wechatWebhookUrl, content, "SUCCESS");
+        } catch (Exception e) {
+            log.error("[微信推送] 企业微信机器人 Webhook 发送失败: {}", e.getMessage());
+            saveLog(alert.getId(), "WECHAT", wechatWebhookUrl, content, "FAILED");
+        }
     }
 
     private void pushEmail(Alert alert, String content) {
@@ -113,22 +138,6 @@ public class Notifier {
     private void pushApp(Alert alert, String content) {
         log.info("[App推送] 内容={}", content);
         saveLog(alert.getId(), "APP", "all-devices", content, "SUCCESS");
-    }
-
-    private void pushWebhook(Alert alert, String content) {
-        if (webhookUrl == null || webhookUrl.isBlank()) {
-            log.info("[Webhook推送-模拟] 未配置 webhook-url，内容={}", content);
-            saveLog(alert.getId(), "WEBHOOK", "webhook", content, "SUCCESS");
-            return;
-        }
-        try {
-            restTemplate.postForEntity(webhookUrl, content, String.class);
-            log.info("[Webhook推送] url={} 内容={}", webhookUrl, content);
-            saveLog(alert.getId(), "WEBHOOK", webhookUrl, content, "SUCCESS");
-        } catch (Exception e) {
-            log.error("[Webhook推送] 失败: {}", e.getMessage());
-            saveLog(alert.getId(), "WEBHOOK", webhookUrl, content, "FAILED");
-        }
     }
 
     private void pushWebSocket(Alert alert) {

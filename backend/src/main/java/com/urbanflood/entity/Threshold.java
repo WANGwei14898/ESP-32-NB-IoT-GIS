@@ -15,7 +15,7 @@ public class Threshold {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 阈值编码：WATER_BLUE / WATER_YELLOW / WATER_ORANGE / WATER_RED / RAIN_HEAVY / FLOW_HIGH / BATTERY_LOW / SIGNAL_WEAK */
+    /** 阈值编码：WATER_* / RAIN_* / FLOW_*（各蓝黄橙红四级）/ BATTERY_LOW / SIGNAL_WEAK */
     private String code;
 
     /** 阈值名称 */

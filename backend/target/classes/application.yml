@@ -63,7 +63,9 @@ push:
     to: alert@example.com
     from: no-reply@urbanflood.local
   sms-target: "13800000000"
-  webhook-url: ""
+  # 企业微信机器人 Webhook 地址（免费），形如 https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx
+  # 未配置时微信渠道退化为日志模拟，仍会写入 push_log 表
+  wechat-webhook-url: ""
 
 # JWT 配置
 jwt:

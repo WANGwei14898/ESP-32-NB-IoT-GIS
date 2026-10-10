@@ -25,6 +25,10 @@ public class AlertEngine {
 
     /** 水位阈值编码（按严重程度从高到低排列）。 */
     private static final String[] WATER_CODES = {"WATER_RED", "WATER_ORANGE", "WATER_YELLOW", "WATER_BLUE"};
+    /** 雨量阈值编码（按严重程度从高到低排列）。 */
+    private static final String[] RAIN_CODES = {"RAIN_RED", "RAIN_ORANGE", "RAIN_YELLOW", "RAIN_BLUE"};
+    /** 流速阈值编码（按严重程度从高到低排列）。 */
+    private static final String[] FLOW_CODES = {"FLOW_RED", "FLOW_ORANGE", "FLOW_YELLOW", "FLOW_BLUE"};
 
     private final ThresholdMapper thresholdMapper;
     private final AlertMapper alertMapper;
@@ -48,36 +52,10 @@ public class AlertEngine {
         }
         Map<String, Threshold> thresholds = loadThresholds();
 
-        // 水位：取最高等级的越限阈值
-        Threshold waterTrigger = null;
-        for (String code : WATER_CODES) {
-            Threshold th = thresholds.get(code);
-            if (th != null && Boolean.TRUE.equals(th.getEnabled())
-                    && telemetry.getWaterLevel() != null && telemetry.getWaterLevel() >= th.getValue()) {
-                waterTrigger = th;
-                break;
-            }
-        }
-        if (waterTrigger != null) {
-            emit(telemetry, station, "WATER", waterTrigger.getLevel(),
-                    "水位超限（阈值 " + waterTrigger.getValue() + " m）", telemetry.getWaterLevel(), waterTrigger.getValue());
-        }
-
-        // 雨量
-        Threshold rain = thresholds.get("RAIN_HEAVY");
-        if (rain != null && Boolean.TRUE.equals(rain.getEnabled())
-                && telemetry.getRainfall() != null && telemetry.getRainfall() >= rain.getValue()) {
-            emit(telemetry, station, "RAIN", rain.getLevel(),
-                    "降雨量过大（阈值 " + rain.getValue() + " mm/h）", telemetry.getRainfall(), rain.getValue());
-        }
-
-        // 流速
-        Threshold flow = thresholds.get("FLOW_HIGH");
-        if (flow != null && Boolean.TRUE.equals(flow.getEnabled())
-                && telemetry.getFlowVelocity() != null && telemetry.getFlowVelocity() >= flow.getValue()) {
-            emit(telemetry, station, "FLOW", flow.getLevel(),
-                    "流速过快（阈值 " + flow.getValue() + " m/s）", telemetry.getFlowVelocity(), flow.getValue());
-        }
+        // 水位 / 雨量 / 流速：均按蓝黄橙红四级阈值判断，命中最高等级的越限阈值即触发对应等级告警
+        emitByLevel(telemetry, station, thresholds, WATER_CODES, "WATER", "水位超限", telemetry.getWaterLevel(), "m");
+        emitByLevel(telemetry, station, thresholds, RAIN_CODES, "RAIN", "降雨量过大", telemetry.getRainfall(), "mm/h");
+        emitByLevel(telemetry, station, thresholds, FLOW_CODES, "FLOW", "流速过快", telemetry.getFlowVelocity(), "m/s");
 
         // 电量
         Threshold battery = thresholds.get("BATTERY_LOW");
@@ -93,6 +71,32 @@ public class AlertEngine {
                 && telemetry.getSignal() != null && telemetry.getSignal() <= signal.getValue()) {
             emit(telemetry, station, "SIGNAL", signal.getLevel(),
                     "信号偏弱（阈值 " + signal.getValue() + " dBm）", telemetry.getSignal(), signal.getValue());
+        }
+    }
+
+    /**
+     * 按多级阈值评估单个指标：从高到低遍历编码，命中首个越限阈值即触发对应等级告警。
+     *
+     * @param t            遥测数据
+     * @param station      关联站点
+     * @param thresholds   已加载的阈值映射（code -&gt; Threshold）
+     * @param codes        该指标的阈值编码（从高到低排列）
+     * @param type         告警类型：WATER / RAIN / FLOW
+     * @param metricText   指标描述（如“水位超限”）
+     * @param currentValue 当前测量值
+     * @param unit         单位（用于告警文案）
+     */
+    private void emitByLevel(Telemetry t, Station station, Map<String, Threshold> thresholds,
+                             String[] codes, String type, String metricText,
+                             Double currentValue, String unit) {
+        for (String code : codes) {
+            Threshold th = thresholds.get(code);
+            if (th != null && Boolean.TRUE.equals(th.getEnabled())
+                    && currentValue != null && currentValue >= th.getValue()) {
+                emit(t, station, type, th.getLevel(),
+                        metricText + "（阈值 " + th.getValue() + " " + unit + "）", currentValue, th.getValue());
+                return;
+            }
         }
     }
 

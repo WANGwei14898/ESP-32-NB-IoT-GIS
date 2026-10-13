@@ -22,6 +22,12 @@ public class TelemetryDTO {
     private Double flowVelocity;
     private Double battery;
     private Double signalStrength;
+    /** 数据来源：esp32 / simulator */
+    private String source;
+    /** 超声波实测距离（米） */
+    private Double distance;
+    /** 电池电压（V） */
+    private Double batteryVoltage;
     /** 采集时间（ISO-8601 字符串） */
     private String timestamp;
 
@@ -35,6 +41,9 @@ public class TelemetryDTO {
         dto.setFlowVelocity(t.getFlowVelocity());
         dto.setBattery(t.getBattery());
         dto.setSignalStrength(t.getSignalStrength());
+        dto.setSource(t.getSource());
+        dto.setDistance(t.getDistance());
+        dto.setBatteryVoltage(t.getBatteryVoltage());
         dto.setTimestamp(TimeUtil.formatIso(t.getTs()));
         return dto;
     }

@@ -1,0 +1,6 @@
+# 敏感信息（Wi-Fi / 服务器 / MQTT 账号密码），勿提交
+src/secrets.h
+
+# PlatformIO 构建产物
+.pio/
+.vscode/

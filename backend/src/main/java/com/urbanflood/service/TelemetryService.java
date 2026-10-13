@@ -13,6 +13,7 @@ import com.urbanflood.mapper.TelemetryMapper;
 import com.urbanflood.util.TimeUtil;
 import com.urbanflood.websocket.RealtimePushHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,10 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class TelemetryService {
+
+    /** 数据源模式：real / simulated / both */
+    @Value("${data.mode:both}")
+    private String dataMode;
 
     private final StationMapper stationMapper;
     private final DeviceMapper deviceMapper;
@@ -48,15 +53,25 @@ public class TelemetryService {
      * 处理一条来自 MQTT / CoAP 的遥测数据。
      */
     public TelemetryDTO processInbound(JsonNode node, String stationCode) {
+        // 识别数据来源（缺省视为真实数据），并按 data.mode 过滤
+        String source = node.hasNonNull("source") ? node.get("source").asText() : "esp32";
+        if (!acceptSource(source)) {
+            log.info("忽略数据（source={}，data.mode={}）", source, dataMode);
+            return null;
+        }
+
         Station station = resolveStation(stationCode, node);
 
         Telemetry telemetry = new Telemetry();
         telemetry.setStationId(station.getId());
+        telemetry.setSource(source);
         telemetry.setWaterLevel(node.hasNonNull("water_level") ? node.get("water_level").asDouble() : null);
         telemetry.setRainfall(node.hasNonNull("rainfall") ? node.get("rainfall").asDouble() : null);
         telemetry.setFlowVelocity(node.hasNonNull("flow_speed") ? node.get("flow_speed").asDouble() : null);
         telemetry.setBattery(node.hasNonNull("battery") ? node.get("battery").asDouble() : null);
         telemetry.setSignalStrength(node.hasNonNull("signal") ? node.get("signal").asDouble() : null);
+        telemetry.setDistance(node.hasNonNull("distance") ? node.get("distance").asDouble() : null);
+        telemetry.setBatteryVoltage(node.hasNonNull("battery_voltage") ? node.get("battery_voltage").asDouble() : null);
 
         LocalDateTime ts = node.hasNonNull("timestamp")
                 ? TimeUtil.parseIso(node.get("timestamp").asText())
@@ -79,6 +94,17 @@ public class TelemetryService {
         realtimePushHandler.pushTelemetry(dto);
 
         return dto;
+    }
+
+    /** 根据 data.mode 判断是否接收该来源的数据。 */
+    private boolean acceptSource(String source) {
+        String s = source == null ? "esp32" : source;
+        String mode = dataMode == null ? "both" : dataMode;
+        return switch (mode) {
+            case "real" -> "esp32".equals(s);
+            case "simulated" -> "simulator".equals(s);
+            default -> true;  // both
+        };
     }
 
     private Station resolveStation(String stationCode, JsonNode node) {

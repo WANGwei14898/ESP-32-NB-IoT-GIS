@@ -60,6 +60,12 @@ export interface Telemetry {
   flowVelocity: number
   battery?: number
   signalStrength?: number
+  /** 数据来源：esp32（真实硬件）/ simulator（模拟） */
+  source?: string
+  /** 超声波实测距离（米） */
+  distance?: number
+  /** 电池电压（V） */
+  batteryVoltage?: number
   timestamp: string
 }
 

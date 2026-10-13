@@ -8,6 +8,7 @@ import com.urbanflood.entity.Threshold;
 import com.urbanflood.mapper.AlertMapper;
 import com.urbanflood.mapper.ThresholdMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -34,6 +35,10 @@ public class AlertEngine {
     private final AlertMapper alertMapper;
     private final Notifier notifier;
 
+    /** 模拟数据是否触发告警 */
+    @Value("${data.simulated-alert:false}")
+    private boolean simulatedAlert;
+
     public AlertEngine(ThresholdMapper thresholdMapper, AlertMapper alertMapper, Notifier notifier) {
         this.thresholdMapper = thresholdMapper;
         this.alertMapper = alertMapper;
@@ -42,6 +47,11 @@ public class AlertEngine {
 
     public void evaluate(Telemetry telemetry, Station station) {
         if (telemetry == null || telemetry.getStationId() == null) {
+            return;
+        }
+        // 模拟数据默认不触发告警，避免产生大量假告警（可通过 data.simulated-alert 开启）
+        if ("simulator".equals(telemetry.getSource()) && !simulatedAlert) {
+            log.info("模拟数据不触发告警（data.simulated-alert=false），站点={}", telemetry.getStationId());
             return;
         }
         Map<String, Threshold> thresholds = loadThresholds();

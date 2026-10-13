@@ -36,9 +36,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
-import type { HeatPoint, InfluenceCircle, Station, WaterPoint, AlertLevel } from '@/types'
+import type { HeatPoint, InfluenceCircle, Station, WaterPoint, AlertLevel, Prediction } from '@/types'
 import { LEVEL_COLOR, LEVEL_TEXT, STATUS_TEXT, formatTime } from '@/utils/format'
 import { getHeatmap, getInfluenceCircles, getStations, getWaterPoints } from '@/api/gis'
+import { getPrediction } from '@/api/prediction'
 import { realtimeSocket } from '@/utils/websocket'
 import AlertBadge from '@/components/AlertBadge.vue'
 
@@ -110,6 +111,9 @@ const waterPoints = ref<WaterPoint[]>([])
 const influences = ref<InfluenceCircle[]>([])
 const selected = ref<Station | null>(null)
 
+// 站点 -> 预测结果 缓存（供弹窗展示）
+const predictionMap = new Map<number, Prediction>()
+
 const showStations = ref(true)
 const showWaterPoints = ref(true)
 const showHeat = ref(true)
@@ -133,6 +137,18 @@ const heatPoints = computed<HeatPoint[]>(() =>
     })),
 )
 
+// 加载全部站点预测（供弹窗展示当前/预测水位）
+async function loadPredictions() {
+  for (const s of stations.value) {
+    try {
+      const p = await getPrediction({ stationId: s.id })
+      predictionMap.set(s.id, p)
+    } catch {
+      /* 预测失败忽略 */
+    }
+  }
+}
+
 // 加载全部 GIS 数据
 async function loadData() {
   try {
@@ -149,6 +165,7 @@ async function loadData() {
   } catch {
     /* 错误已统一提示 */
   }
+  await loadPredictions()
   renderStations()
   renderWaterPoints()
   renderInfluence()
@@ -207,10 +224,11 @@ function createStationIcon(s: Station): L.DivIcon {
   })
 }
 
-// 站点弹窗内容（显示站点编号、数据来源与水情数据）
+// 站点弹窗内容（显示站点编号、数据来源、当前水位与预测水位）
 function buildStationPopup(s: Station): string {
   const t = s.latest
   const offline = isOffline(s)
+  const pred = predictionMap.get(s.id)
   const rows = [
     ['站点编号', s.code],
     ['所属区域', s.region || '-'],
@@ -219,12 +237,14 @@ function buildStationPopup(s: Station): string {
     ['预警等级', LEVEL_TEXT[s.alertLevel] || '正常'],
   ]
   if (t && !offline) {
-    rows.push(
-      ['水位', `${t.waterLevel} cm`],
-      ['雨量', `${t.rainfall} mm`],
-      ['流速', `${t.flowVelocity} m/s`],
-      ['采集时间', formatTime(t.timestamp)],
-    )
+    rows.push(['当前水位', `<span style="font-weight:700;color:#409eff;border-bottom:2px solid #409eff">${t.waterLevel} m</span>`])
+    rows.push(['雨量', `${t.rainfall} mm`])
+    rows.push(['流速', `${t.flowVelocity} m/s`])
+    rows.push(['采集时间', formatTime(t.timestamp)])
+  }
+  if (pred) {
+    rows.push(['预测 30 分钟后', `<span style="color:#f97316;border-bottom:2px dashed #f97316">${pred.predicted30m ?? '-'} m</span>`])
+    rows.push(['预测 60 分钟后', `<span style="color:#f97316;border-bottom:2px dashed #f97316">${pred.predicted60m ?? '-'} m</span>`])
   }
   const body = rows.map(([k, v]) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`).join('')
   return `<div class="station-popup"><h4>${s.name}</h4>${body}</div>`

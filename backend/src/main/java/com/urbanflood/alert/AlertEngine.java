@@ -1,6 +1,7 @@
 package com.urbanflood.alert;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.urbanflood.dto.PredictionDTO;
 import com.urbanflood.entity.Alert;
 import com.urbanflood.entity.Station;
 import com.urbanflood.entity.Telemetry;
@@ -76,6 +77,47 @@ public class AlertEngine {
             emit(telemetry, station, "SIGNAL", signal.getLevel(),
                     "信号偏弱（阈值 " + signal.getThresholdValue() + " dBm）", telemetry.getSignalStrength(), signal.getThresholdValue());
         }
+    }
+
+    /**
+     * 预测预警：预测 60 分钟后水位超过警戒线（红色阈值）时，提前触发预警。
+     */
+    public void evaluatePrediction(PredictionDTO prediction, Station station) {
+        if (prediction == null || prediction.getPredicted60m() == null || station == null) {
+            return;
+        }
+        Map<String, Threshold> thresholds = loadThresholds();
+        Threshold red = thresholds.get("WATER_RED");
+        if (red == null || !Boolean.TRUE.equals(red.getEnabled())) {
+            return;
+        }
+        double predicted60 = prediction.getPredicted60m();
+        if (predicted60 >= red.getThresholdValue()) {
+            emitPredict(station, predicted60, red.getThresholdValue());
+        }
+    }
+
+    /** 生成预测预警（type=PREDICT），同一站点存在活动预测预警时不再重复。 */
+    private void emitPredict(Station station, double predicted60, double threshold) {
+        Long count = alertMapper.selectCount(new LambdaQueryWrapper<Alert>()
+                .eq(Alert::getStationId, station.getId())
+                .eq(Alert::getType, "PREDICT")
+                .eq(Alert::getStatus, "ACTIVE"));
+        if (count != null && count > 0) {
+            return;
+        }
+        Alert alert = new Alert();
+        alert.setStationId(station.getId());
+        alert.setLevel("RED");
+        alert.setType("PREDICT");
+        alert.setMessage("预测 60 分钟后水位将达 " + predicted60 + " m，超过警戒线 " + threshold + " m，请提前处置");
+        alert.setWaterLevel(predicted60);
+        alert.setThreshold(threshold);
+        alert.setStatus("ACTIVE");
+        alert.setCreateTime(LocalDateTime.now());
+        alertMapper.insert(alert);
+        log.info("生成预测预警: 站点={} 预测60m水位={} 警戒线={}", station.getId(), predicted60, threshold);
+        notifier.notify(alert, station);
     }
 
     private void emitByLevel(Telemetry t, Station station, Map<String, Threshold> thresholds,

@@ -112,6 +112,10 @@ export interface Prediction {
   modelType: string
   predictTime: string
   points: PredictionPoint[]
+  /** 预测 30 分钟后的水位（米） */
+  predicted30m?: number
+  /** 预测 60 分钟后的水位（米） */
+  predicted60m?: number
 }
 
 /** 告警阈值配置 */

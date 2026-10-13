@@ -27,6 +27,7 @@ ESP-32-NB-IoT-GIS/
 ├── scripts/
 │   ├── test_mqtt.py            # MQTT 连通性测试
 │   ├── test_coap.py            # CoAP 连通性测试
+│   ├── predict_service.py      # 短时水位预测服务（APScheduler + Flask）
 │   └── simulator/              # 模拟脚本（含 source 标识 + README）
 └── urban-flood-monitoring/     # 参考项目（含前端等）
 ```
@@ -206,3 +207,21 @@ python scripts/test_coap.py --station S001
 ## 真实硬件固件（ESP32）
 
 真实水位监测固件位于 `firmware/esp32_sensor/`（HC-SR04 超声波测距 + 中值/卡尔曼滤波 + 水位换算 + Wi-Fi/NB-IoT + MQTT/CoAP 双协议上报 + 看门狗/断线重连），详见该目录 README。模拟脚本见 `scripts/simulator/`。
+
+## 短时水位预测服务
+
+`scripts/predict_service.py` 提供短时水位预测（未来 30~60 分钟）：
+
+- **数据获取**：从 MySQL 读取站点过去 2 小时水位数据
+- **预处理**：重采样 + 线性插值 + 滑动平均平滑
+- **双模型**：移动平均外推（默认）/ ARIMA（statsmodels），数据不足自动降级
+- **输出**：`predicted_water_level_30m/60m` + 置信区间，写入 `prediction` 表
+- **触发**：APScheduler 定时（默认每 5 分钟）+ Flask `/predict` 接口（端口 8000）
+
+```bash
+pip install -r scripts/predict_requirements.txt
+cd scripts && cp .env.example .env   # 填入 MySQL 账号
+python predict_service.py            # 启动定时任务 + HTTP 服务
+```
+
+后端 `PredictionService` 预测完成后会调用 `AlertEngine.evaluatePrediction`：当预测 60 分钟后水位超过红色警戒线时，**提前触发预测预警**（告警类型 `PREDICT`）。GIS 地图站点弹窗会展示「当前水位 + 预测 30/60 分钟后水位」。

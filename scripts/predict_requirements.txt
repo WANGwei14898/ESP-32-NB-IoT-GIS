@@ -1,0 +1,11 @@
+# 城市内涝监测预警系统 —— 短时水位预测服务依赖
+# 安装命令：pip install -r predict_requirements.txt
+pandas
+numpy
+statsmodels
+pymysql
+flask
+apscheduler
+python-dotenv
+# scikit-learn —— 预留（当前 ARIMA 用 statsmodels，LSTM 二期再用）
+scikit-learn

@@ -1,6 +1,7 @@
 package com.urbanflood.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.urbanflood.alert.AlertEngine;
 import com.urbanflood.dto.PredictionDTO;
 import com.urbanflood.dto.PredictionDTO.PredictionPoint;
 import com.urbanflood.entity.Prediction;
@@ -33,12 +34,13 @@ import java.util.Map;
 @Service
 public class PredictionService {
 
-    private static final List<String> MODELS = List.of("moving_average", "arima", "lstm");
+    private static final List<String> MODELS = List.of("moving_average", "arima");
 
     private final PredictionMapper predictionMapper;
     private final TelemetryMapper telemetryMapper;
     private final StationMapper stationMapper;
     private final RealtimePushHandler realtimePushHandler;
+    private final AlertEngine alertEngine;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${prediction.base-url:http://localhost:8000}")
@@ -53,11 +55,13 @@ public class PredictionService {
     public PredictionService(PredictionMapper predictionMapper,
                              TelemetryMapper telemetryMapper,
                              StationMapper stationMapper,
-                             RealtimePushHandler realtimePushHandler) {
+                             RealtimePushHandler realtimePushHandler,
+                             AlertEngine alertEngine) {
         this.predictionMapper = predictionMapper;
         this.telemetryMapper = telemetryMapper;
         this.stationMapper = stationMapper;
         this.realtimePushHandler = realtimePushHandler;
+        this.alertEngine = alertEngine;
     }
 
     public PredictionDTO get(Long stationId, Integer minutes, String model) {
@@ -94,6 +98,15 @@ public class PredictionService {
 
         PredictionDTO dto = PredictionDTO.from(entity);
         realtimePushHandler.pushPrediction(dto);
+
+        // 预测预警：预测 60 分钟后水位超警戒线时提前预警
+        try {
+            Station station = stationMapper.selectById(stationId);
+            alertEngine.evaluatePrediction(dto, station);
+        } catch (Exception e) {
+            log.warn("预测预警评估失败: {}", e.getMessage());
+        }
+
         return dto;
     }
 

@@ -203,14 +203,20 @@ INSERT INTO device (code, name, station_id, type, protocol, status, firmware, in
 -- 回填站点关联设备
 UPDATE station s JOIN device d ON s.id = d.station_id SET s.device_id = d.id;
 
--- 告警阈值配置（蓝/黄/橙/红四级）
+-- 告警阈值配置（水位/雨量/流速各蓝黄橙红四级，另含电量/信号辅助阈值）
 INSERT INTO threshold (code, name, `value`, unit, level, enabled) VALUES
 ('WATER_BLUE',   '水位蓝色预警阈值', 1.0,   'm',    'BLUE',   1),
 ('WATER_YELLOW', '水位黄色预警阈值', 1.2,   'm',    'YELLOW', 1),
 ('WATER_ORANGE', '水位橙色预警阈值', 1.4,   'm',    'ORANGE', 1),
 ('WATER_RED',    '水位红色预警阈值', 1.5,   'm',    'RED',    1),
-('RAIN_HEAVY',   '大雨阈值',        50.0,  'mm/h', 'ORANGE', 1),
-('FLOW_HIGH',    '高流速阈值',      3.0,   'm/s',  'YELLOW', 1),
+('RAIN_BLUE',    '雨量蓝色预警阈值', 10.0,  'mm/h', 'BLUE',   1),
+('RAIN_YELLOW',  '雨量黄色预警阈值', 20.0,  'mm/h', 'YELLOW', 1),
+('RAIN_ORANGE',  '雨量橙色预警阈值', 35.0,  'mm/h', 'ORANGE', 1),
+('RAIN_RED',     '雨量红色预警阈值', 50.0,  'mm/h', 'RED',    1),
+('FLOW_BLUE',    '流速蓝色预警阈值', 1.0,   'm/s',  'BLUE',   1),
+('FLOW_YELLOW',  '流速黄色预警阈值', 2.0,   'm/s',  'YELLOW', 1),
+('FLOW_ORANGE',  '流速橙色预警阈值', 3.0,   'm/s',  'ORANGE', 1),
+('FLOW_RED',     '流速红色预警阈值', 4.0,   'm/s',  'RED',    1),
 ('BATTERY_LOW',  '低电量阈值',      20.0,  '%',    'YELLOW', 1),
 ('SIGNAL_WEAK',  '弱信号阈值',      -100,  'dBm',  'BLUE',   1);
 

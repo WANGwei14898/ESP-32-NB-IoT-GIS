@@ -64,19 +64,31 @@ public class AlertEngine {
         if (signal != null && Boolean.TRUE.equals(signal.getEnabled())
                 && telemetry.getSignalStrength() != null && telemetry.getSignalStrength() <= signal.getThresholdValue()) {
             emit(telemetry, station, "SIGNAL", signal.getLevel(),
-                    "信号偏弱（阈值 " + signal.getThresholdValue() + " dBm）", telemetry.getSignalStrength(), signal.getThresholdValue());
+                    "信号偏弱（阈值 " + signal.getValue() + " dBm）", telemetry.getSignal(), signal.getValue());
         }
     }
 
+    /**
+     * 按多级阈值评估单个指标：从高到低遍历编码，命中首个越限阈值即触发对应等级告警。
+     *
+     * @param t            遥测数据
+     * @param station      关联站点
+     * @param thresholds   已加载的阈值映射（code -&gt; Threshold）
+     * @param codes        该指标的阈值编码（从高到低排列）
+     * @param type         告警类型：WATER / RAIN / FLOW
+     * @param metricText   指标描述（如“水位超限”）
+     * @param currentValue 当前测量值
+     * @param unit         单位（用于告警文案）
+     */
     private void emitByLevel(Telemetry t, Station station, Map<String, Threshold> thresholds,
                              String[] codes, String type, String metricText,
                              Double currentValue, String unit) {
         for (String code : codes) {
             Threshold th = thresholds.get(code);
             if (th != null && Boolean.TRUE.equals(th.getEnabled())
-                    && currentValue != null && currentValue >= th.getThresholdValue()) {
+                    && currentValue != null && currentValue >= th.getValue()) {
                 emit(t, station, type, th.getLevel(),
-                        metricText + "（阈值 " + th.getThresholdValue() + " " + unit + "）", currentValue, th.getThresholdValue());
+                        metricText + "（阈值 " + th.getValue() + " " + unit + "）", currentValue, th.getValue());
                 return;
             }
         }

@@ -52,6 +52,7 @@
       <el-header class="header">
         <div class="header__title">{{ currentTitle }}</div>
         <div class="header__right">
+          <NotificationCenter />
           <span class="user">
             <el-icon><User /></el-icon>
             {{ userStore.username }}
@@ -84,6 +85,7 @@ import {
   Cloudy,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store'
+import NotificationCenter from '@/components/NotificationCenter.vue'
 
 const route = useRoute()
 const router = useRouter()

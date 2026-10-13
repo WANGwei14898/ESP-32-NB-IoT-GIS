@@ -40,6 +40,15 @@ public class Telemetry {
     @TableField("signal_strength")
     private Double signalStrength;
 
+    /** 数据来源：esp32 / simulator */
+    private String source;
+
+    /** 超声波实测距离（米） */
+    private Double distance;
+
+    /** 电池电压（V） */
+    private Double batteryVoltage;
+
     /** 采集时间 */
     private LocalDateTime ts;
 }

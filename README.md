@@ -15,6 +15,8 @@ ESP-32-NB-IoT-GIS/
 │   ├── pom.xml
 │   ├── sql/init.sql            # 建库建表脚本（含种子数据）
 │   └── src/main/...            # Java 源码
+├── firmware/                   # ESP32 硬件固件（真实传感器）
+│   └── esp32_sensor/           # HC-SR04 超声波水位监测固件
 ├── simulation/                 # 监测站点模拟器（阶段 2）
 │   ├── config.py               # 站点与上报配置
 │   ├── data_generator.py       # 遥测数据生成器
@@ -24,7 +26,8 @@ ESP-32-NB-IoT-GIS/
 │   └── coap_server.py          # CoAP 服务端（阶段 3，可选）
 ├── scripts/
 │   ├── test_mqtt.py            # MQTT 连通性测试
-│   └── test_coap.py            # CoAP 连通性测试
+│   ├── test_coap.py            # CoAP 连通性测试
+│   └── simulator/              # 模拟脚本（含 source 标识 + README）
 └── urban-flood-monitoring/     # 参考项目（含前端等）
 ```
 
@@ -167,6 +170,39 @@ python scripts/test_coap.py --station S001
   "battery": 99.9,
   "signal": -78.2,
   "latitude": 23.1291,
-  "longitude": 113.357
+  "longitude": 113.357,
+  "distance": 1.49,
+  "battery_voltage": 3.72,
+  "source": "esp32"
 }
 ```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| station_id | string | 站点编号（与 station.code 一致，新编号自动注册） |
+| timestamp | string | ISO-8601 采集时间 |
+| water_level | number | 水位（米） |
+| rainfall | number | 雨量（mm/h） |
+| flow_speed | number | 流速（m/s） |
+| battery | number | 电量（%） |
+| signal | number | 信号强度（dBm） |
+| latitude / longitude | number | 站点坐标（WGS84） |
+| distance | number | 超声波实测距离（米，ESP32 固件上报） |
+| battery_voltage | number | 电池电压（V，ESP32 固件上报） |
+| source | string | 数据来源：`esp32`（真实硬件）/ `simulator`（模拟） |
+
+## 数据源模式（DATA_MODE）
+
+后端通过 `data.mode` 配置（环境变量 `DATA_MODE`）一键切换系统模式：
+
+| DATA_MODE | 说明 |
+|-----------|------|
+| `real` | 仅接收真实硬件数据（source=esp32） |
+| `simulated` | 仅接收模拟数据（source=simulator） |
+| `both` | 两者都接收（默认） |
+
+模拟数据默认**不触发告警**（`data.simulated-alert=false`，环境变量 `DATA_SIMULATED_ALERT`），避免模拟数据产生大量假告警；如需模拟数据也参与告警，设为 `true`。
+
+## 真实硬件固件（ESP32）
+
+真实水位监测固件位于 `firmware/esp32_sensor/`（HC-SR04 超声波测距 + 中值/卡尔曼滤波 + 水位换算 + Wi-Fi/NB-IoT + MQTT/CoAP 双协议上报 + 看门狗/断线重连），详见该目录 README。模拟脚本见 `scripts/simulator/`。

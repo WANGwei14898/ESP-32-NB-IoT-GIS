@@ -50,6 +50,14 @@ coap:
   host: 0.0.0.0
   port: 5683
 
+# 数据源模式配置
+# mode：real=仅接收真实硬件数据(esp32)；simulated=仅接收模拟数据(simulator)；both=两者都接收
+# simulated-alert：模拟数据是否触发告警引擎（false 可避免模拟数据产生大量假告警）
+# 对应环境变量：DATA_MODE、DATA_SIMULATED_ALERT
+data:
+  mode: both
+  simulated-alert: false
+
 # 预测服务配置（Python 预测服务地址）
 prediction:
   base-url: http://localhost:8000

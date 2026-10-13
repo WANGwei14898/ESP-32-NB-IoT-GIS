@@ -50,6 +50,18 @@ PROTOCOL = os.getenv("PROTOCOL", "mqtt").strip().lower()
 if PROTOCOL not in ("mqtt", "coap"):
     PROTOCOL = "mqtt"
 
+# ======================= 数据来源标识 =======================
+# 上报 JSON 中的 source 字段值，用于后端区分数据来源。
+# 固定为 "simulator"；真实 ESP32 硬件固件上报 "esp32"。
+SOURCE = os.getenv("SOURCE", "simulator").strip() or "simulator"
+
+# ======================= 模拟站点编号 =======================
+# 模拟器使用的站点编号（station_id）：
+#   - 留空：使用 STATIONS 列表中的默认站点编号（S001 ~ S010）
+#   - 设为 sim_station_01 等：使用模拟专用编号，避免与真实硬件冲突
+#   - 设为 S001 等：与真实硬件共用同一站点编号，模拟真实环境
+SIM_STATION_ID = os.getenv("SIM_STATION_ID", "").strip()
+
 # ======================= 上报间隔（秒） =======================
 # 每个站点每次上报间隔在 [REPORT_INTERVAL_MIN, REPORT_INTERVAL_MAX] 内随机取值。
 # 默认 60 ~ 300 秒，即 1 ~ 5 分钟，可通过 .env 覆盖。

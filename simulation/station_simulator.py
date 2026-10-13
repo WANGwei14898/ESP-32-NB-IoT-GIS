@@ -20,7 +20,8 @@ station_simulator.py
         "battery": 99.9,
         "signal": -78.2,
         "latitude": 23.1291,
-        "longitude": 113.357
+        "longitude": 113.357,
+        "source": "simulator"
     }
 """
 import json
@@ -43,7 +44,12 @@ class StationSimulator:
 
     def __init__(self, station: dict):
         self.station = station
-        self.station_id = station["station_id"]
+        # 支持通过 SIM_STATION_ID 覆盖站点编号：
+        # 留空使用站点自身编号；设为 sim_station_01 用模拟专用编号；设为 S001 与硬件共用
+        if config.SIM_STATION_ID:
+            self.station_id = config.SIM_STATION_ID
+        else:
+            self.station_id = station["station_id"]
         # 使用站点编号生成稳定的随机种子，保证数据可复现
         self.generator = DataGenerator(self.station_id, seed=hash(self.station_id) % (2 ** 32))
         self.protocol = config.PROTOCOL
@@ -68,6 +74,7 @@ class StationSimulator:
             "signal": data["signal"],
             "latitude": self.station["latitude"],
             "longitude": self.station["longitude"],
+            "source": config.SOURCE,
         }
 
     # ------------------------------------------------------------------

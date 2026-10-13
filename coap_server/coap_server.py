@@ -102,7 +102,11 @@ class TelemetryResource(resource.Resource):
             log.warning("站点 %s 载荷解析失败：%s", station_id, exc)
             return Message(code=codes.BAD_REQUEST, payload=b"invalid JSON")
 
-        log.info("收到站点 %s 遥测数据：%s", station_id, json.dumps(payload, ensure_ascii=False))
+        # 识别数据来源（缺省视为真实硬件），仅用于日志标注；
+        # 是否触发告警由后端 data.mode / data.simulated-alert 决定。
+        source = payload.get("source", "esp32")
+        log.info("收到站点 %s 遥测数据（source=%s）：%s",
+                 station_id, source, json.dumps(payload, ensure_ascii=False))
 
         # 可选转发到 MQTT
         if FORWARD_TO_MQTT:

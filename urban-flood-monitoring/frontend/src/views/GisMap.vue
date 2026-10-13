@@ -166,15 +166,40 @@ function renderStations() {
   })
 }
 
-// 生成带等级颜色的站点 divIcon
+// 数据新鲜度阈值：最新数据超过该时长视为离线（毫秒）
+const OFFLINE_THRESHOLD_MS = 5 * 60 * 1000
+
+// 判断站点是否离线（状态非 ONLINE，或无最新数据，或数据过旧）
+function isOffline(s: Station): boolean {
+  if (s.status !== 'ONLINE') return true
+  const t = s.latest
+  if (!t) return true
+  const ts = new Date(t.timestamp).getTime()
+  if (Number.isNaN(ts)) return true
+  return Date.now() - ts > OFFLINE_THRESHOLD_MS
+}
+
+// 数据来源标签
+function sourceText(s: Station): string {
+  return s.latest?.source === 'simulator' ? '模拟器' : '真实设备'
+}
+
+// 离线文案：模拟器离线 / 设备离线
+function offlineText(s: Station): string {
+  return s.latest?.source === 'simulator' ? '模拟器离线' : '设备离线'
+}
+
+// 生成带来源区分的站点 divIcon（真实=预警色，模拟=灰色）
 function createStationIcon(s: Station): L.DivIcon {
-  const color = LEVEL_COLOR[s.alertLevel] || '#67C23A'
-  const offline = s.status !== 'ONLINE'
+  const isSimulated = s.latest?.source === 'simulator'
+  // 真实数据按预警等级着色（蓝/黄/橙/红），模拟数据用灰色
+  const color = isSimulated ? '#909399' : (LEVEL_COLOR[s.alertLevel] || '#67C23A')
+  const offline = isOffline(s)
   return L.divIcon({
     className: 'station-marker',
     html: `
       <div class="station-marker__pin" style="background:${color};${offline ? 'opacity:0.45;' : ''}"></div>
-      <div class="station-marker__label">${s.name}</div>
+      <div class="station-marker__label">${s.name}${isSimulated ? ' (模拟)' : ''}</div>
     `,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
@@ -182,16 +207,18 @@ function createStationIcon(s: Station): L.DivIcon {
   })
 }
 
-// 站点弹窗内容（显示站点编号与水情数据）
+// 站点弹窗内容（显示站点编号、数据来源与水情数据）
 function buildStationPopup(s: Station): string {
   const t = s.latest
+  const offline = isOffline(s)
   const rows = [
     ['站点编号', s.code],
     ['所属区域', s.region || '-'],
-    ['设备状态', STATUS_TEXT[s.status] || '-'],
+    ['数据来源', sourceText(s)],
+    ['设备状态', offline ? offlineText(s) : (STATUS_TEXT[s.status] || '-')],
     ['预警等级', LEVEL_TEXT[s.alertLevel] || '正常'],
   ]
-  if (t) {
+  if (t && !offline) {
     rows.push(
       ['水位', `${t.waterLevel} cm`],
       ['雨量', `${t.rainfall} mm`],
